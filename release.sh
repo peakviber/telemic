@@ -59,7 +59,7 @@ spctl --assess --type open --context context:primary-signature -v "$DMG"
 
 # Sparkle appcast for this release (served from the latest GitHub release).
 SIG=$(Vendor/Sparkle/bin/sign_update "${SPARKLE_AUTH[@]}" "$DMG")
-URL="https://github.com/alexkuang0/telemic/releases/download/v$VERSION/Telemic-$VERSION.dmg"
+URL="https://github.com/peakviber/telemic/releases/download/v$VERSION/Telemic-$VERSION.dmg"
 cat > dist/appcast.xml <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
@@ -71,7 +71,7 @@ cat > dist/appcast.xml <<XML
       <sparkle:version>$BUILD</sparkle:version>
       <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/alexkuang0/telemic/releases/tag/v$VERSION</link>
+      <link>https://github.com/peakviber/telemic/releases/tag/v$VERSION</link>
       <enclosure url="$URL" type="application/octet-stream" $SIG />
     </item>
   </channel>

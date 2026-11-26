@@ -38,7 +38,7 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://github.com/alexkuang0/telemic/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/peakviber/telemic/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>Wc5H9gzkd/Qs04AK/onQaXfUPNinnRWkMMBDpGm7kfk=</string>
 	<key>SUScheduledCheckInterval</key>
