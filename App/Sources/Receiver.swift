@@ -95,6 +95,7 @@ final class ReceiverEngine {
     private var mixTimer: DispatchSourceTimer?
     private var uiTimer: DispatchSourceTimer?
     private var clockStart: UInt64 = 0
+    private var startedAt = Date()
     private var produced: Int64 = 0
     private var sleepAssertion: IOPMAssertionID = 0
     private var bindError: String?
@@ -152,6 +153,7 @@ final class ReceiverEngine {
             }
 
             clockStart = DispatchTime.now().uptimeNanoseconds
+            startedAt = Date()
             produced = 0
             let mix = DispatchSource.makeTimerSource(flags: .strict, queue: q)
             mix.schedule(deadline: .now(), repeating: .milliseconds(10), leeway: .milliseconds(1))
@@ -444,7 +446,24 @@ final class ReceiverEngine {
         defaults.set(Dictionary(uniqueKeysWithValues: aliases.map { ($0.key.uuidString, $0.value) }), forKey: "receiver.aliases")
     }
 
+    /// Single mode: if the selected sender has been gone for a few seconds and another
+    /// approved, unmuted sender is online, listen to that one instead, so the microphone
+    /// doesn't go silent when you move to another Mac. No switching back when the old one
+    /// returns; the user can still pick any sender by hand.
+    private func failOver() {
+        guard mode == .single else { return }
+        let goneSince = selected.flatMap { peers[$0] }.map { max($0.lastSeen, startedAt) } ?? startedAt
+        guard Date().timeIntervalSince(goneSince) > Self.failOverAfter else { return }
+        let candidates = peers.values.filter { approval(of: $0) == .approved && !muted.contains($0.id) && isOnline($0) && $0.id != selected }
+        guard let next = candidates.max(by: { ($0.lastAudio, $0.lastSeen) < ($1.lastAudio, $1.lastSeen) }) else { return }
+        Log.info("selected sender gone; switching to \(next.name)")
+        setSelected(next.id)
+        peers.values.forEach { reply(to: $0) }
+    }
+    static let failOverAfter: TimeInterval = 5
+
     private func publish() {
+        failOver()
         // Drop senders that have been gone for a minute and were never approved.
         peers = peers.filter { approval(of: $0.value) != nil || Date().timeIntervalSince($0.value.lastSeen) < 60 }
         var s = Snapshot()

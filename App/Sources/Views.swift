@@ -31,7 +31,10 @@ struct HeaderBar: View {
             Image(systemName: model.role == .send ? "mic.fill" : (model.role == .receive ? "ear" : "mic.badge.plus"))
                 .font(.system(size: 15))
                 .frame(width: 18)
-            Text(model.statusTitle).font(.headline).lineLimit(1)
+            // Long Mac names wrap onto a second line instead of being cut off.
+            Text(model.statusTitle).font(.headline).lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .help(model.statusTitle)
             Spacer()
             MoreMenu()
         }
