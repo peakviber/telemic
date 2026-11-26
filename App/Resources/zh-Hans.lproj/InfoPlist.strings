@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "RemoteMic 需要使用麦克风，把你的声音发送到另一台 Mac。";
+"NSLocalNetworkUsageDescription" = "RemoteMic 需要访问本地网络，用来发现并连接你的其他 Mac。";
