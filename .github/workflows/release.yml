@@ -1,0 +1,101 @@
+# Publishing a GitHub release (tag vX.Y.Z) builds, signs, notarizes and attaches
+# Telemic-X.Y.Z.dmg and appcast.xml to it. Installed copies then update through Sparkle.
+#
+# Repository secrets:
+#   DEVELOPER_ID_P12            base64 of the "Developer ID Application" certificate + key (.p12)
+#   DEVELOPER_ID_P12_PASSWORD   the password the .p12 was exported with
+#   SPARKLE_PRIVATE_KEY         Sparkle EdDSA key (Vendor/Sparkle/bin/generate_keys --account remotemic -x <file>)
+#   Notarization, either an App Store Connect API key:
+#     NOTARY_KEY (contents of the .p8), NOTARY_KEY_ID, NOTARY_ISSUER
+#   or an Apple ID with an app-specific password:
+#     NOTARY_APPLE_ID, NOTARY_PASSWORD, NOTARY_TEAM_ID
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to (re)build, e.g. v0.7.0
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 150
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Version from tag
+        run: |
+          V="${TAG#v}"
+          [[ "$V" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || { echo "Tag must look like v1.2.3, got $TAG"; exit 1; }
+          BUILD=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          plutil -replace CFBundleShortVersionString -string "$V" App/Info.plist
+          plutil -replace CFBundleVersion -string "$BUILD" App/Info.plist
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "Building $V ($BUILD)"
+
+      - name: Signing keychain
+        env:
+          P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/release.keychain-db"
+          KC_PASSWORD=$(uuidgen)
+          security create-keychain -p "$KC_PASSWORD" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASSWORD" "$KC"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/id.p12"
+          security import "$RUNNER_TEMP/id.p12" -k "$KC" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/id.p12"
+          curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KC" || true
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASSWORD" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KC"
+
+      - name: Notary and Sparkle keys
+        env:
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle.key"
+          echo "SPARKLE_KEY_FILE=$RUNNER_TEMP/sparkle.key" >> "$GITHUB_ENV"
+          if [ -n "$NOTARY_KEY" ]; then
+            printf '%s' "$NOTARY_KEY" > "$RUNNER_TEMP/notary.p8"
+            echo "NOTARY_KEY_FILE=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build, notarize, sign the update feed
+        env:
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+        run: ./release.sh
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "dist/Telemic-$VERSION.dmg" dist/appcast.xml --clobber
+
+      - name: Clean up
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/release.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/sparkle.key" "$RUNNER_TEMP/notary.p8"

@@ -56,7 +56,7 @@ final class SenderEngine {
     var onUpdate: ((Snapshot) -> Void)?
     var onLive: ((Live) -> Void)?
 
-    private let q = DispatchQueue(label: "remotemic.sender", qos: .userInteractive)
+    private let q = DispatchQueue(label: "telemic.sender", qos: .userInteractive)
     private let socket = UDPSocket()
     private var target: Endpoint?
     private var targetAddr: sockaddr_in?

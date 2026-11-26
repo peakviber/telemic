@@ -85,7 +85,7 @@ final class HotkeyCenter {
 
 /// "Sender X wants to connect" with Allow / Deny right in the notification.
 final class PendingNotifier: NSObject, UNUserNotificationCenterDelegate {
-    static let category = "remotemic.pending"
+    static let category = "telemic.pending"
     var onDecision: ((UUID, Bool) -> Void)?
     private var authorized = false
 
@@ -105,8 +105,8 @@ final class PendingNotifier: NSObject, UNUserNotificationCenterDelegate {
             guard granted else { return }
             let c = UNMutableNotificationContent()
             c.title = L("\(name) 请求连接", "\(name) wants to connect")
-            c.body = L("指纹 \(fingerprint)。允许后它的声音会进入 RemoteMic。",
-                       "Fingerprint \(fingerprint). If allowed, its audio goes into RemoteMic.")
+            c.body = L("指纹 \(fingerprint)。允许后它的声音会进入 Telemic。",
+                       "Fingerprint \(fingerprint). If allowed, its audio goes into Telemic.")
             c.sound = .default
             c.categoryIdentifier = Self.category
             c.userInfo = ["id": id.uuidString]

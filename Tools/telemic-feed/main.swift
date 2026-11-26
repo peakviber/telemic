@@ -1,13 +1,13 @@
-// remotemic-feed — proof-of-concept tool for the RemoteMic driver.
+// telemic-feed — proof-of-concept tool for the Telemic driver.
 //
 // Sends audio to the driver over 127.0.0.1:47811 without ever playing it
-// through Core Audio, and can meter what apps receive from the RemoteMic device.
+// through Core Audio, and can meter what apps receive from the Telemic device.
 //
-//   remotemic-feed tone on|off        built-in 440 Hz tone inside the driver
-//   remotemic-feed sine [seconds]     stream a generated 440 Hz sine
-//   remotemic-feed say "text" [voice] synthesize speech to a file, then stream it
-//   remotemic-feed file <path>        stream any audio file (converted to 48 kHz mono)
-//   remotemic-feed meter [seconds]    record from RemoteMic and print the level
+//   telemic-feed tone on|off        built-in 440 Hz tone inside the driver
+//   telemic-feed sine [seconds]     stream a generated 440 Hz sine
+//   telemic-feed say "text" [voice] synthesize speech to a file, then stream it
+//   telemic-feed file <path>        stream any audio file (converted to 48 kHz mono)
+//   telemic-feed meter [seconds]    record from Telemic and print the level
 
 import AVFoundation
 import CoreAudio
@@ -71,7 +71,7 @@ func loadMono48k(_ url: URL) throws -> [Float] {
     let file = try AVAudioFile(forReading: url)
     let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
     guard let converter = AVAudioConverter(from: file.processingFormat, to: target) else {
-        throw NSError(domain: "remotemic", code: 1, userInfo: [NSLocalizedDescriptionKey: "cannot convert \(file.processingFormat)"])
+        throw NSError(domain: "telemic", code: 1, userInfo: [NSLocalizedDescriptionKey: "cannot convert \(file.processingFormat)"])
     }
     let inBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))!
     try file.read(into: inBuf)
@@ -90,17 +90,17 @@ func loadMono48k(_ url: URL) throws -> [Float] {
 }
 
 func synthesize(_ text: String, voice: String?) throws -> URL {
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("remotemic-say-\(getpid()).aiff")
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("telemic-say-\(getpid()).aiff")
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
     p.arguments = (voice.map { ["-v", $0] } ?? []) + ["-o", url.path, text]   // -o: write a file, never play
     try p.run()
     p.waitUntilExit()
-    guard p.terminationStatus == 0 else { throw NSError(domain: "remotemic", code: 2, userInfo: [NSLocalizedDescriptionKey: "say failed"]) }
+    guard p.terminationStatus == 0 else { throw NSError(domain: "telemic", code: 2, userInfo: [NSLocalizedDescriptionKey: "say failed"]) }
     return url
 }
 
-// MARK: - Meter (records from the RemoteMic device; never plays anything)
+// MARK: - Meter (records from the Telemic device; never plays anything)
 
 func findDevice(uid: String) -> AudioObjectID? {
     var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyTranslateUIDToDevice,
@@ -117,8 +117,8 @@ func findDevice(uid: String) -> AudioObjectID? {
 }
 
 func meter(seconds: Double) {
-    guard let device = findDevice(uid: "RemoteMic_Device_UID") else {
-        print("RemoteMic device not found — is the driver installed and coreaudiod restarted?")
+    guard let device = findDevice(uid: "Telemic_Device_UID") else {
+        print("Telemic device not found — is the driver installed and coreaudiod restarted?")
         exit(1)
     }
     let lock = NSLock()
@@ -132,9 +132,9 @@ func meter(seconds: Double) {
         for i in 0..<n { s += Double(p[i] * p[i]); pk = max(pk, abs(p[i])) }
         lock.lock(); sumSquares += s; count += n; peak = max(peak, pk); lock.unlock()
     }
-    guard status == noErr, let procID else { print("cannot open RemoteMic (status \(status))"); exit(1) }
+    guard status == noErr, let procID else { print("cannot open Telemic (status \(status))"); exit(1) }
     AudioDeviceStart(device, procID)
-    print("Recording from RemoteMic for \(Int(seconds)) s (Ctrl-C to stop)…")
+    print("Recording from Telemic for \(Int(seconds)) s (Ctrl-C to stop)…")
     let end = Date().addingTimeInterval(seconds)
     while Date() < end {
         usleep(250_000)
@@ -166,14 +166,14 @@ do {
         print("streaming 440 Hz sine for \(secs) s")
         sender.stream(sine(seconds: secs))
     case "say":
-        guard args.count > 1 else { throw NSError(domain: "remotemic", code: 3, userInfo: [NSLocalizedDescriptionKey: "usage: say \"text\" [voice]"]) }
+        guard args.count > 1 else { throw NSError(domain: "telemic", code: 3, userInfo: [NSLocalizedDescriptionKey: "usage: say \"text\" [voice]"]) }
         let url = try synthesize(args[1], voice: args.count > 2 ? args[2] : nil)
         defer { try? FileManager.default.removeItem(at: url) }
         let samples = try loadMono48k(url)
         print(String(format: "streaming speech (%.1f s)", Double(samples.count) / sampleRate))
         sender.stream(samples)
     case "file":
-        guard args.count > 1 else { throw NSError(domain: "remotemic", code: 3, userInfo: [NSLocalizedDescriptionKey: "usage: file <path>"]) }
+        guard args.count > 1 else { throw NSError(domain: "telemic", code: 3, userInfo: [NSLocalizedDescriptionKey: "usage: file <path>"]) }
         let samples = try loadMono48k(URL(fileURLWithPath: args[1]))
         print(String(format: "streaming file (%.1f s)", Double(samples.count) / sampleRate))
         sender.stream(samples)
@@ -182,11 +182,11 @@ do {
     default:
         print("""
         usage:
-          remotemic-feed tone on|off
-          remotemic-feed sine [seconds]
-          remotemic-feed say "text" [voice]
-          remotemic-feed file <path>
-          remotemic-feed meter [seconds]
+          telemic-feed tone on|off
+          telemic-feed sine [seconds]
+          telemic-feed say "text" [voice]
+          telemic-feed file <path>
+          telemic-feed meter [seconds]
         """)
     }
 } catch {

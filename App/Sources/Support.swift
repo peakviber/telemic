@@ -7,7 +7,7 @@ func L(_ zh: String, _ en: String) -> String { isChinese ? zh : en }
 
 /// Unified logging plus the last 200 lines in memory for "Copy diagnostics".
 enum Log {
-    private static let logger = Logger(subsystem: "com.remotemic.app", category: "app")
+    private static let logger = Logger(subsystem: "com.peakviber.telemic", category: "app")
     private static let lock = NSLock()
     private static var lines: [String] = []
     private static let clock: DateFormatter = {

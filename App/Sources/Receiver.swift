@@ -3,7 +3,7 @@ import Foundation
 import IOKit.pwr_mgt
 
 /// Host side: accepts senders, decrypts and decodes their audio, mixes the
-/// selected ones, and hands PCM to the RemoteMic driver over loopback.
+/// selected ones, and hands PCM to the Telemic driver over loopback.
 final class ReceiverEngine {
     enum Approval: String, Codable { case approved, denied }
     enum Mode: String, Codable { case single, mix }
@@ -87,7 +87,7 @@ final class ReceiverEngine {
     private let autoApprove: Bool
     private let feedsDriver: Bool
     private let defaults: UserDefaults
-    private let q = DispatchQueue(label: "remotemic.receiver", qos: .userInteractive)
+    private let q = DispatchQueue(label: "telemic.receiver", qos: .userInteractive)
     private var socket: UDPSocket?
     private let driverSocket = UDPSocket()
     private let driverAddr = Endpoint(host: "127.0.0.1", port: Wire.driverPort).resolve()!
@@ -113,14 +113,14 @@ final class ReceiverEngine {
     private var tailnetOnly: Bool
 
     /// `autoApprove` is the self-test mode: it starts from clean settings and keeps
-    /// audio away from the real RemoteMic driver, so a test never disturbs a live microphone.
+    /// audio away from the real Telemic driver, so a test never disturbs a live microphone.
     init(port: UInt16 = Wire.defaultPort, autoApprove: Bool = false) {
         self.port = port
         self.autoApprove = autoApprove
         feedsDriver = !autoApprove
         if autoApprove {
-            UserDefaults.standard.removePersistentDomain(forName: "com.remotemic.selftest")
-            defaults = UserDefaults(suiteName: "com.remotemic.selftest")!
+            UserDefaults.standard.removePersistentDomain(forName: "com.peakviber.telemic.selftest")
+            defaults = UserDefaults(suiteName: "com.peakviber.telemic.selftest")!
         } else {
             defaults = .standard
         }
@@ -169,7 +169,7 @@ final class ReceiverEngine {
 
             IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
                                         IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                        "RemoteMic is receiving audio" as CFString, &sleepAssertion)
+                                        "Telemic is receiving audio" as CFString, &sleepAssertion)
         }
     }
 

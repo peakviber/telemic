@@ -20,7 +20,7 @@ mkdir -p "$DEST"
 cp -R "$TMP/x/Sparkle.framework" "$DEST/"
 cp -R "$TMP/x/bin" "$DEST/"
 cp "$TMP/x/LICENSE" "$DEST/LICENSE"
-# RemoteMic isn't sandboxed, so Sparkle's XPC services aren't needed (Sparkle docs: optional).
+# Telemic isn't sandboxed, so Sparkle's XPC services aren't needed (Sparkle docs: optional).
 rm -rf "$DEST/Sparkle.framework/Versions/B/XPCServices" "$DEST/Sparkle.framework/XPCServices"
 echo "$VERSION" > "$DEST/.version"
 echo "Sparkle $VERSION ready in $DEST"

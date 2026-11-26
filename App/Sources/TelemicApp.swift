@@ -1,11 +1,12 @@
 import SwiftUI
 
 @main
-struct RemoteMicApp: App {
+struct TelemicApp: App {
     @StateObject private var model: AppModel
 
     init() {
         if CommandLine.arguments.contains("--selftest") { exit(SelfTest.run()) }
+        LegacyMigration.run()
         _model = StateObject(wrappedValue: AppModel())
     }
 
@@ -21,14 +22,14 @@ struct RemoteMicApp: App {
     }
 }
 
-/// `RemoteMic --selftest`: a receiver and a sender in one process, talking over
-/// loopback with encryption, feeding a tone into the real RemoteMic driver.
+/// `Telemic --selftest`: a receiver and a sender in one process, talking over
+/// loopback with encryption, feeding a tone into the real Telemic driver.
 enum SelfTest {
     static func run() -> Int32 {
         func say(_ s: String) { print(s); fflush(stdout) }
         let port: UInt16 = 47_890
         // Leave the real app's settings exactly as they were.
-        let domain = Bundle.main.bundleIdentifier ?? "com.remotemic.app"
+        let domain = Bundle.main.bundleIdentifier ?? "com.peakviber.telemic"
         let savedDefaults = UserDefaults.standard.persistentDomain(forName: domain) ?? [:]
         defer { UserDefaults.standard.setPersistentDomain(savedDefaults, forName: domain) }
 

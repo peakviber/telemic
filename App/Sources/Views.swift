@@ -62,8 +62,11 @@ struct MoreMenu: View {
             Button(L("复制诊断信息", "Copy diagnostics")) { model.copyDiagnostics() }
             if Updates.shared.available {
                 Button(L("检查更新…", "Check for Updates…")) { Updates.shared.checkNow() }
+                Toggle(L("自动检查更新", "Check for Updates Automatically"),
+                       isOn: Binding(get: { Updates.shared.automaticallyChecks },
+                                     set: { Updates.shared.automaticallyChecks = $0 }))
             }
-            Text("RemoteMic \(AppModel.version)")
+            Text("Telemic \(AppModel.version)")
             Divider()
             Button(L("退出", "Quit")) { model.quit() }.keyboardShortcut("q")
         } label: {
@@ -81,7 +84,7 @@ struct MoreMenu: View {
                isOn: Binding(get: { model.receiver.tailnetOnly }, set: { model.setTailnetOnly($0) }))
         if case .ready(let v) = model.driver {
             Menu(L("驱动", "Driver")) {
-                Text(L("RemoteMic 驱动 \(v)", "RemoteMic driver \(v)"))
+                Text(L("Telemic 驱动 \(v)", "Telemic driver \(v)"))
                 Button(L("重新安装", "Reinstall")) { model.installDriver() }
                 Button(L("卸载", "Uninstall")) { model.uninstallDriver() }
             }
@@ -123,7 +126,7 @@ struct RolePicker: View {
             RoleButton(icon: "mic.fill", title: L("发送", "Send"),
                        detail: L("把这台 Mac 的麦克风送到另一台 Mac", "Send this Mac's microphone to another Mac")) { model.choose(.send) }
             RoleButton(icon: "ear", title: L("接收", "Receive"),
-                       detail: L("把收到的声音变成这台 Mac 的 RemoteMic 麦克风", "Turn incoming audio into this Mac's RemoteMic microphone")) { model.choose(.receive) }
+                       detail: L("把收到的声音变成这台 Mac 的 Telemic 麦克风", "Turn incoming audio into this Mac's Telemic microphone")) { model.choose(.receive) }
         }
     }
 }
@@ -164,9 +167,9 @@ struct ReceiverView: View {
         VStack(alignment: .leading, spacing: 10) {
             // Things that need the user, each with its fix.
             DriverSection()
-            if case .ready = model.driver, !model.remoteMicIsDefault {
-                Notice(icon: "exclamationmark.triangle.fill", text: L("RemoteMic 不是系统默认输入", "RemoteMic isn't the default input"),
-                       button: L("修复", "Fix")) { model.makeRemoteMicDefault() }
+            if case .ready = model.driver, !model.telemicIsDefault {
+                Notice(icon: "exclamationmark.triangle.fill", text: L("Telemic 不是系统默认输入", "Telemic isn't the default input"),
+                       button: L("修复", "Fix")) { model.makeTelemicDefault() }
             }
             if let err = model.receiver.error {
                 Notice(icon: "exclamationmark.triangle.fill", text: err)
@@ -218,8 +221,8 @@ struct DriverSection: View {
         case .ready:
             EmptyView()
         case .notInstalled:
-            DriverPrompt(text: L("需要安装 RemoteMic 虚拟麦克风驱动（会请求管理员密码）。",
-                                 "RemoteMic needs its virtual microphone driver (asks for an administrator password)."),
+            DriverPrompt(text: L("需要安装 Telemic 虚拟麦克风驱动（会请求管理员密码）。",
+                                 "Telemic needs its virtual microphone driver (asks for an administrator password)."),
                          button: L("安装驱动", "Install driver"))
         case .outdated(let installed, let bundled):
             DriverPrompt(text: L("驱动需要更新（\(installed) → \(bundled)）。", "Driver update available (\(installed) → \(bundled))."),
@@ -627,13 +630,13 @@ struct LevelBar: View {
     }
 }
 
-/// Shown next to the other Mac when its RemoteMic version differs from ours.
+/// Shown next to the other Mac when its Telemic version differs from ours.
 struct VersionBadge: View {
     let note: String
     var body: some View {
         Label(note, systemImage: "arrow.triangle.2.circlepath")
             .font(.caption2)
             .foregroundStyle(.orange)
-            .help(L("两台 Mac 的 RemoteMic 版本不同，建议都更新到最新版", "The two Macs run different RemoteMic versions; update both to the latest"))
+            .help(L("两台 Mac 的 Telemic 版本不同，建议都更新到最新版", "The two Macs run different Telemic versions; update both to the latest"))
     }
 }

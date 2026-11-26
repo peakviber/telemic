@@ -222,6 +222,7 @@ enum Crypto {
         guard let peer = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: peerPublicKey),
               let secret = try? Identity.privateKey.sharedSecretFromKeyAgreement(with: peer) else { return nil }
         return secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: salt,
+                                              // Wire constant from the RemoteMic days; changing it breaks older peers.
                                               sharedInfo: Data("RemoteMic v1 audio".utf8), outputByteCount: 32)
     }
 
@@ -258,8 +259,12 @@ enum Crypto {
 enum Identity {
     static let directory: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("RemoteMic", isDirectory: true)
+            .appendingPathComponent("Telemic", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Ad-hoc builds from the RemoteMic days kept the key here; carry it over.
+        let key = dir.appendingPathComponent("identity.key")
+        let legacyKey = dir.deletingLastPathComponent().appendingPathComponent("RemoteMic/identity.key")
+        if !FileManager.default.fileExists(atPath: key.path) { try? FileManager.default.moveItem(at: legacyKey, to: key) }
         return dir
     }()
 
@@ -268,10 +273,12 @@ enum Identity {
     /// build and the Keychain would ask for permission after each update.
     /// An existing file key is moved into the Keychain once; the identity never changes.
     static let privateKey: Curve25519.KeyAgreement.PrivateKey = {
+        // The self-test (also run in CI) uses a throwaway key and never touches the Keychain.
+        if CommandLine.arguments.contains("--selftest") { return Curve25519.KeyAgreement.PrivateKey() }
         let url = directory.appendingPathComponent("identity.key")
         let fileKey = (try? Data(contentsOf: url)).flatMap { try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: $0) }
         if Signing.teamID != nil {
-            if let raw = Keychain.read(), let key = try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw) {
+            if let raw = Keychain.read() ?? Keychain.adoptLegacy(), let key = try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw) {
                 if fileKey?.rawRepresentation == raw { try? FileManager.default.removeItem(at: url) }
                 return key
             }
@@ -290,7 +297,7 @@ enum Identity {
         if let key = fileKey { return key }
         // A Developer ID build may have moved the key into the Keychain; reuse it rather than
         // silently becoming a new device (macOS may ask once to allow this build).
-        if let raw = Keychain.read(), let key = try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw) {
+        if let raw = Keychain.read() ?? Keychain.adoptLegacy(), let key = try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw) {
             return key
         }
         let key = Curve25519.KeyAgreement.PrivateKey()
@@ -341,13 +348,24 @@ enum Signing {
 
 /// The identity key's Keychain item (login keychain, this Mac only).
 enum Keychain {
-    private static let base: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "com.remotemic.identity",
-        kSecAttrAccount as String: "x25519",
-    ]
+    private static let base = query(service: "com.peakviber.telemic.identity")
+    private static func query(service: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: service,
+         kSecAttrAccount as String: "x25519"]
+    }
 
-    static func read() -> Data? {
+    static func read() -> Data? { read(base) }
+
+    /// Copies the key a RemoteMic build stored (same device, new app name), so the Mac
+    /// keeps its identity and senders don't see "key changed". macOS asks once to allow it.
+    static func adoptLegacy() -> Data? {
+        guard let raw = read(query(service: "com.remotemic.identity")) else { return nil }
+        if write(raw) { Log.info("identity key carried over from RemoteMic") }
+        return raw
+    }
+
+    private static func read(_ base: [String: Any]) -> Data? {
         var q = base
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -358,7 +376,7 @@ enum Keychain {
     static func write(_ data: Data) -> Bool {
         var q = base
         q[kSecValueData as String] = data
-        q[kSecAttrLabel as String] = "RemoteMic device key"
+        q[kSecAttrLabel as String] = "Telemic device key"
         let status = SecItemAdd(q as CFDictionary, nil)
         return status == errSecSuccess || (status == errSecDuplicateItem && read() == data)
     }

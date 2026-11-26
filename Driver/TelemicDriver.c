@@ -1,8 +1,8 @@
-// RemoteMic — an input-only virtual microphone (Core Audio AudioServerPlugIn).
+// Telemic — an input-only virtual microphone (Core Audio AudioServerPlugIn).
 //
 // Audio never "plays" through any app on the host: a receiver sends PCM to this
 // plug-in over a loopback UDP socket, and the plug-in hands it straight to apps
-// that record from the "RemoteMic" device. Screen-capture tools that collect
+// that record from the "Telemic" device. Screen-capture tools that collect
 // per-app audio output (e.g. UU Remote via ScreenCaptureKit) therefore can't see it.
 //
 // Loopback protocol (127.0.0.1:47811, UDP), 8-byte header then payload:
@@ -30,10 +30,10 @@ enum {
     kObjectID_Stream = 3,
 };
 
-#define kDeviceName         "RemoteMic"
-#define kManufacturer       "RemoteMic"
-#define kDeviceUID          "RemoteMic_Device_UID"
-#define kModelUID           "RemoteMic_Model_UID"
+#define kDeviceName         "Telemic"
+#define kManufacturer       "Telemic"
+#define kDeviceUID          "Telemic_Device_UID"
+#define kModelUID           "Telemic_Model_UID"
 #define kSampleRate         48000.0
 #define kZeroPeriod         16384u
 #define kLoopbackPort       47811
@@ -320,7 +320,7 @@ static AudioServerPlugInDriverRef gDriverRef = &gInterfacePtr;
 
 // Factory named in Info.plist (CFPlugInFactories).
 __attribute__((visibility("default")))
-void* RemoteMic_Create(CFAllocatorRef allocator, CFUUIDRef requestedType) {
+void* Telemic_Create(CFAllocatorRef allocator, CFUUIDRef requestedType) {
     (void)allocator;
     if (CFEqual(requestedType, kAudioServerPlugInTypeUUID)) return gDriverRef;
     return NULL;
@@ -344,14 +344,14 @@ static ULONG Release(void* drv) { (void)drv; if (gRefCount) gRefCount--; return 
 
 static OSStatus Initialize(AudioServerPlugInDriverRef drv, AudioServerPlugInHostRef host) {
     (void)drv;
-    gLog = os_log_create("com.remotemic.driver", "driver");
+    gLog = os_log_create("com.peakviber.telemic.driver", "driver");
     gHost = host;
     mach_timebase_info_data_t tb;
     mach_timebase_info(&tb);
     Float64 hostTicksPerSecond = 1e9 * (Float64)tb.denom / (Float64)tb.numer;
     gTicksPerFrame = hostTicksPerSecond / kSampleRate;
     pthread_create(&gReceiver, NULL, ReceiverMain, NULL);
-    os_log(gLog, "RemoteMic driver initialized");
+    os_log(gLog, "Telemic driver initialized");
     return kAudioHardwareNoError;
 }
 

@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>RemoteMic</string>
+	<string>Telemic</string>
 	<key>CFBundleExecutable</key>
-	<string>RemoteMic</string>
+	<string>Telemic</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.remotemic.app</string>
+	<string>com.peakviber.telemic</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleLocalizations</key>
@@ -20,25 +20,25 @@
 		<string>zh-Hans</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>RemoteMic</string>
+	<string>Telemic</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.6.1</string>
+	<string>0.7.0</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>700</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>RemoteMic uses the local network to find and connect to your other Macs.</string>
+	<string>Telemic uses the local network to find and connect to your other Macs.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>RemoteMic uses the microphone to send your voice to another Mac.</string>
+	<string>Telemic uses the microphone to send your voice to another Mac.</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://github.com/alexkuang0/RemoteMic/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/alexkuang0/Telemic/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>Wc5H9gzkd/Qs04AK/onQaXfUPNinnRWkMMBDpGm7kfk=</string>
 	<key>SUScheduledCheckInterval</key>

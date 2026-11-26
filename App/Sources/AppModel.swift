@@ -27,7 +27,7 @@ final class AppModel: ObservableObject {
     @Published var inputs: [(uid: String, name: String)] = []
     @Published var copied = false
     @Published var diagnosticsCopied = false
-    @Published var remoteMicIsDefault = false
+    @Published var telemicIsDefault = false
     @Published var manualAddress = ""
     @Published var manualError = false
     @Published var shortcuts: [HotkeyCenter.Action: Shortcut] = [:]
@@ -52,7 +52,7 @@ final class AppModel: ObservableObject {
         notifier.onDecision = { [weak self] id, ok in self?.decide(id, approve: ok) }
         loadShortcuts()
         HotkeyCenter.shared.handler = { [weak self] action, pressed in self?.hotkey(action, pressed: pressed) }
-        Log.info("RemoteMic \(Self.version) started, role \(role?.rawValue ?? "none")")
+        Log.info("Telemic \(Self.version) started, role \(role?.rawValue ?? "none")")
         activate()
         Updates.shared.start()
     }
@@ -159,11 +159,11 @@ final class AppModel: ObservableObject {
     }
 
     func refreshDefaultInput() {
-        remoteMicIsDefault = AudioDevices.defaultInputUID() == AudioDevices.remoteMicUID
+        telemicIsDefault = AudioDevices.defaultInputUID() == AudioDevices.telemicUID
     }
 
-    func makeRemoteMicDefault() {
-        AudioDevices.setDefaultInput(uid: AudioDevices.remoteMicUID)
+    func makeTelemicDefault() {
+        AudioDevices.setDefaultInput(uid: AudioDevices.telemicUID)
         refreshDefaultInput()
     }
 
@@ -254,13 +254,13 @@ final class AppModel: ObservableObject {
         var lines: [String] = []
         // Built from numbers: operatingSystemVersionString is localized.
         let v = ProcessInfo.processInfo.operatingSystemVersion
-        lines.append("RemoteMic \(Self.version) · macOS \(v.majorVersion).\(v.minorVersion).\(v.patchVersion) · \(Identity.name)")
+        lines.append("Telemic \(Self.version) · macOS \(v.majorVersion).\(v.minorVersion).\(v.patchVersion) · \(Identity.name)")
         lines.append("role: \(role?.rawValue ?? "none")")
         lines.append("tailnet ip: \(Tailnet.ownIPv4() ?? "-") · lan ip: \(Tailnet.lanIPv4() ?? "-")")
         lines.append("device fingerprint: \(Crypto.fingerprint(Identity.publicKey))")
         switch role {
         case .receive:
-            lines.append("driver: \(driver) · default input is RemoteMic: \(remoteMicIsDefault)")
+            lines.append("driver: \(driver) · default input is Telemic: \(telemicIsDefault)")
             lines.append("listening: \(receiver.listening) · error: \(receiver.error ?? "-") · mode: \(receiver.mode.rawValue) · tailnet only: \(receiver.tailnetOnly)")
             for p in receiver.peers {
                 let l = live.receiver.loss[p.id]
@@ -290,7 +290,7 @@ final class AppModel: ObservableObject {
     var statusTitle: String {
         switch role {
         case nil:
-            return L("设置 RemoteMic", "Set up RemoteMic")
+            return L("设置 Telemic", "Set up Telemic")
         case .receive:
             guard case .ready = driver else { return L("需要设置", "Setup needed") }
             let approved = receiver.peers.filter { $0.approval == .approved }
@@ -342,7 +342,7 @@ final class AppModel: ObservableObject {
     func openShortcuts() {
         if shortcutsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: ShortcutsView().environmentObject(self)))
-            w.title = L("RemoteMic 快捷键", "RemoteMic Shortcuts")
+            w.title = L("Telemic 快捷键", "Telemic Shortcuts")
             w.styleMask = [.titled, .closable]
             w.isReleasedWhenClosed = false
             w.center()

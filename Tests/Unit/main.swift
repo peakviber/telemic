@@ -1,4 +1,4 @@
-// Unit tests for RemoteMic's core logic. Run with ./test.sh
+// Unit tests for Telemic's core logic. Run with ./test.sh
 // (a plain executable: swift-testing/XCTest need Xcode, which this project doesn't require).
 
 import Foundation

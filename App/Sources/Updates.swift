@@ -14,6 +14,13 @@ final class Updates: NSObject, SPUStandardUserDriverDelegate {
         controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
     }
 
+    /// The user's "check automatically" choice (stored by Sparkle in our defaults; the
+    /// Info.plist only sets the default, on).
+    var automaticallyChecks: Bool {
+        get { controller?.updater.automaticallyChecksForUpdates ?? false }
+        set { controller?.updater.automaticallyChecksForUpdates = newValue }
+    }
+
     func checkNow() {
         NSApp.activate(ignoringOtherApps: true)   // menu bar app: bring Sparkle's window forward
         controller?.checkForUpdates(nil)

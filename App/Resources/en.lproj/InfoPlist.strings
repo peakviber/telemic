@@ -1,2 +1,2 @@
-"NSMicrophoneUsageDescription" = "RemoteMic uses the microphone to send your voice to another Mac.";
-"NSLocalNetworkUsageDescription" = "RemoteMic uses the local network to find and connect to your other Macs.";
+"NSMicrophoneUsageDescription" = "Telemic uses the microphone to send your voice to another Mac.";
+"NSLocalNetworkUsageDescription" = "Telemic uses the local network to find and connect to your other Macs.";

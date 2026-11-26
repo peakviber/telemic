@@ -1,4 +1,4 @@
-# RemoteMic 设计笔记
+# Telemic 设计笔记
 
 ## 要解决的问题
 
@@ -14,19 +14,19 @@ UU 远程用 ScreenCaptureKit 采集所有应用的声音，于是把这段声�
 ```
 本地 Mac（发送端）                         主机 Mac mini（接收端）
 ┌──────────────────┐   Opus/UDP over    ┌────────────────────────────┐
-│ RemoteMic.app    │   Tailnet          │ RemoteMic.app（主机模式）  │
+│ Telemic.app    │   Tailnet          │ Telemic.app（主机模式）  │
 │  采集麦克风       │ ─────────────────▶ │  接收、解码、抖动缓冲       │
 │  Opus 编码       │                    │  选择：只听某一台 / 混合     │
 └──────────────────┘                    │        │ 127.0.0.1 UDP（PCM）│
    × N 台                               │        ▼                    │
-                                        │ RemoteMic.driver（HAL 插件）│
+                                        │ Telemic.driver（HAL 插件）│
                                         │  只有输入的虚拟设备          │
                                         └────────┬───────────────────┘
                                                  ▼
-                                         主机上的应用（选 RemoteMic 当麦克风）
+                                         主机上的应用（选 Telemic 当麦克风）
 ```
 
-- **驱动**（`Driver/`）：Core Audio AudioServerPlugIn，只有输入、没有输出的设备 "RemoteMic"，
+- **驱动**（`Driver/`）：Core Audio AudioServerPlugIn，只有输入、没有输出的设备 "Telemic"，
   48 kHz、单声道、float32。它在本机回环地址上接收 PCM，放进无锁环形缓冲，
   在 IO 回调里交给录音的应用。缓冲先攒 40 ms 再开始输出，积压超过 250 ms 就跳到最新。
   解码和网络都不放在驱动里：接收程序崩溃不会拖垮系统的声音服务。
@@ -40,7 +40,7 @@ UU 远程用 ScreenCaptureKit 采集所有应用的声音，于是把这段声�
   - 开源 `tailscaled`（本机就是这种）：`/var/run/tailscaled.sock`，
     `GET http://local-tailscaled.sock/localapi/v0/status`。已在主机上验证可用。
   - Tailscale 独立版（DMG）：`/Applications/Tailscale.app/Contents/MacOS/Tailscale status --json`。
-- 拿到 `OS == "macOS"` 且在线的设备后，向每台的 RemoteMic 端口发一个 hello，
+- 拿到 `OS == "macOS"` 且在线的设备后，向每台的 Telemic 端口发一个 hello，
   回复里带角色（主机/客户端）和设备名，就完成发现。
 - 安全：只监听 Tailscale 网卡地址，只接受来自本 Tailnet 的包。
 - Tailnet 不支持多播，所以 Bonjour 无法跨 Tailnet 发现设备，只能用上面的方式。
@@ -62,7 +62,7 @@ UU 远程用 ScreenCaptureKit 采集所有应用的声音，于是把这段声�
 
 ## 分阶段计划
 
-1. **概念验证**（当前）：驱动 + `remotemic-feed` 测试工具。验证主机应用能听到，而 UU 客户端听不到。
+1. **概念验证**（当前）：驱动 + `telemic-feed` 测试工具。验证主机应用能听到，而 UU 客户端听不到。
 2. **打通链路**：客户端采集麦克风 → Opus → UDP → 主机解码 → 驱动。
 3. **统一应用**：SwiftUI 菜单栏应用，角色切换、Tailnet 自动发现、主机端"选择一台/混合"。
 4. **打磨发布**：时钟漂移补偿、断线重连、开机自启、签名公证、安装包与卸载。
@@ -86,7 +86,7 @@ UU 远程用 ScreenCaptureKit 采集所有应用的声音，于是把这段声�
 
 ### 加密与认证
 
-- 每台 Mac 一把长期 X25519 密钥（`~/Library/Application Support/RemoteMic/identity.key`，权限 0600）。
+- 每台 Mac 一把长期 X25519 密钥（`~/Library/Application Support/Telemic/identity.key`，权限 0600）。
 - 每次会话发送端随机生成 salt，音频密钥 = HKDF(X25519(发送端, 接收端), salt)；音频用 ChaCha20-Poly1305 加密，序号做 nonce。
 - 接收端只接受**用户允许过的公钥**发来的音频，只有持有对应私钥的设备能产生可解密的包。
 - 发送端首次连接时记住接收端公钥（TOFU），之后公钥变化会警告。两端都显示指纹，可以人工核对。
@@ -101,7 +101,7 @@ UU 远程用 ScreenCaptureKit 采集所有应用的声音，于是把这段声�
 ## 注意
 
 - 主机不在身边：更新驱动只重启声音服务（`sudo killall coreaudiod`），不要重启电脑（FileVault）。
-- 关掉 UU 远程的"远程通话/远程麦克风"功能，否则 UU 会读主机的默认输入，即 RemoteMic。
+- 关掉 UU 远程的"远程通话/远程麦克风"功能，否则 UU 会读主机的默认输入，即 Telemic。
 - 卸载：`sudo ./uninstall.sh`。
 
 ## 参考

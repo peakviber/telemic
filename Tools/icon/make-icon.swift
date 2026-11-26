@@ -1,4 +1,4 @@
-// Draws the RemoteMic app icon and writes App/Resources/AppIcon.icns.
+// Draws the Telemic app icon and writes App/Resources/AppIcon.icns.
 // Run from the repo root: swift Tools/icon/make-icon.swift
 import AppKit
 
